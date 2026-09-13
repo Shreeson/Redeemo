@@ -59,7 +59,7 @@ npm install
 cp .env.example .env   # then edit JWT_SECRET to any long random string
 npm start
 ```
-The API runs on `http://localhost:5500`.
+The API runs on `http://localhost:3001`.
 
 **Frontend**
 
