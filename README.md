@@ -95,7 +95,3 @@ This is a portfolio project, not a production system:
 - SQLite is fine for a demo but isn't built for concurrent writes at scale — a real deployment would use Postgres.
 - No email verification or password reset flow.
 - No rate limiting on the API (would add `express-rate-limit` for a production version).
-
-## License
-
-MIT
