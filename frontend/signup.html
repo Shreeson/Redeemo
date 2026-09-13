@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up · Redeemo</title>
+  <meta name="description" content="Create a Redeemo account to start earning tickets." />
+  <link rel="icon" href="images/favicon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <main id="main" class="auth-wrap">
+    <div class="auth-card">
+      <a href="index.html" class="brand"><span class="ticket-icon"></span>Redeemo</a>
+
+      <div class="form-error" id="error-box" role="alert"></div>
+
+      <form id="signup-form" novalidate>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" required minlength="3" />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="new-password" required minlength="6" />
+          <small style="color: var(--text-muted); font-size: 0.78rem;">At least 6 characters</small>
+        </div>
+        <button type="submit" class="btn" id="submit-btn">Create Account</button>
+      </form>
+
+      <p class="auth-switch">Already have an account? <a href="index.html">Log in</a></p>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script>
+    if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+    const form = document.getElementById('signup-form');
+    const errorBox = document.getElementById('error-box');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.remove('visible');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating account…';
+
+      try {
+        const username = document.getElementById('username').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const data = await apiRequest('/auth/signup', {
+          method: 'POST',
+          auth: false,
+          body: { username, email, password },
+        });
+        Auth.setSession(data.token, data.user);
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.classList.add('visible');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

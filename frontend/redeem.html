@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redeem · Redeemo</title>
+  <meta name="description" content="Redeem your tickets for gift cards, game currency, and charity donations." />
+  <link rel="icon" href="images/favicon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <nav class="navbar" id="navbar" aria-label="Main navigation"></nav>
+
+  <main id="main" class="page">
+    <div class="page-header">
+      <p class="eyebrow">Prize Counter</p>
+      <h1>Redeem Your Tickets</h1>
+      <p>Your balance is checked server-side before every redemption — no client-side shortcuts.</p>
+    </div>
+
+    <div class="filter-tabs" id="filter-tabs" role="tablist" aria-label="Filter rewards by category"></div>
+    <div class="ticket-grid" id="reward-grid"></div>
+  </main>
+
+  <footer>Redeemo — a portfolio project. Not a real rewards program.</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    Auth.requireAuth();
+    renderNav('redeem.html');
+
+    const categoryIcons = {
+      'gift-card': '💳',
+      'game-currency': '🎮',
+      subscription: '🎧',
+      charity: '❤️',
+    };
+
+    const categoryLabels = {
+      all: 'All',
+      'gift-card': 'Gift Cards',
+      'game-currency': 'Game Currency',
+      subscription: 'Subscriptions',
+      charity: 'Charity',
+    };
+
+    let allRewards = [];
+    let currentUserCoins = 0;
+    let activeCategory = 'all';
+
+    function renderTabs(rewards) {
+      const present = ['all', ...new Set(rewards.map((r) => r.category))];
+      const tabs = document.getElementById('filter-tabs');
+      tabs.innerHTML = present
+        .map(
+          (cat) => `
+        <button class="filter-tab ${cat === activeCategory ? 'active' : ''}" data-category="${cat}" role="tab" aria-selected="${cat === activeCategory}">
+          ${categoryLabels[cat] || cat}
+        </button>
+      `
+        )
+        .join('');
+
+      tabs.querySelectorAll('.filter-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          activeCategory = btn.dataset.category;
+          renderTabs(allRewards);
+          renderRewards(
+            activeCategory === 'all' ? allRewards : allRewards.filter((r) => r.category === activeCategory),
+            currentUserCoins
+          );
+        });
+      });
+    }
+
+    function renderRewards(rewards, userCoins) {
+      const grid = document.getElementById('reward-grid');
+      grid.innerHTML = rewards
+        .map((r) => {
+          const affordable = userCoins >= r.cost;
+          return `
+        <div class="ticket">
+          <div class="ticket-body">
+            <h3>${categoryIcons[r.category] || '🎟️'} ${r.name}</h3>
+            <p>${r.category.replace('-', ' ')}</p>
+          </div>
+          <div class="ticket-stub">
+            <span class="amount cost mono">${r.cost}</span>
+            <span class="unit">tix</span>
+          </div>
+          <div class="ticket-action">
+            <button class="ticket-cta" data-reward-id="${r.id}" ${!affordable ? 'disabled' : ''}>
+              ${affordable ? 'Redeem' : 'Need more'}
+            </button>
+          </div>
+        </div>
+      `;
+        })
+        .join('');
+
+      grid.querySelectorAll('.ticket-cta').forEach((btn) => {
+        btn.addEventListener('click', () => redeemReward(btn.dataset.rewardId, btn));
+      });
+    }
+
+    async function redeemReward(id, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Redeeming…';
+      try {
+        const data = await apiRequest(`/rewards/${id}/redeem`, { method: 'POST' });
+        updateNavCoins(data.coins);
+        showToast(data.message);
+        loadRewards();
+      } catch (err) {
+        showToast(err.message, true);
+        btn.disabled = false;
+        btn.textContent = 'Redeem';
+      }
+    }
+
+    async function loadRewards() {
+      try {
+        const { user } = await apiRequest('/auth/me');
+        updateNavCoins(user.coins);
+        currentUserCoins = user.coins;
+        const { rewards } = await apiRequest('/rewards');
+        allRewards = rewards;
+        renderTabs(allRewards);
+        renderRewards(
+          activeCategory === 'all' ? allRewards : allRewards.filter((r) => r.category === activeCategory),
+          user.coins
+        );
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    loadRewards();
+  </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard · Redeemo</title>
+  <meta name="description" content="Track your ticket balance and jump into quests or rewards." />
+  <link rel="icon" href="images/favicon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <nav class="navbar" id="navbar" aria-label="Main navigation"></nav>
+
+  <main id="main" class="page">
+    <div class="page-header">
+      <p class="eyebrow" id="greeting">Welcome back</p>
+      <h1>Your Ticket Counter</h1>
+      <p>Complete quests to earn tickets, then redeem them for real rewards.</p>
+    </div>
+
+    <div class="counter-card">
+      <p class="eyebrow">Current Balance</p>
+      <div class="count mono" id="coin-count">0</div>
+      <div class="count-label">tickets</div>
+      <div class="quick-links">
+        <a href="earn.html">Earn More →</a>
+        <a href="redeem.html">Redeem Tickets →</a>
+      </div>
+    </div>
+
+    <h2 style="font-size: 1.1rem;">Redemption History</h2>
+    <ul class="history-list" id="history-list"></ul>
+    <div class="empty-state" id="empty-history" style="display:none;">
+      No redemptions yet — head to the Redeem page once you've earned some tickets.
+    </div>
+  </main>
+
+  <footer>Redeemo — a portfolio project. Not a real rewards program.</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    Auth.requireAuth();
+    renderNav('dashboard.html');
+
+    async function loadDashboard() {
+      try {
+        const { user } = await apiRequest('/auth/me');
+        updateNavCoins(user.coins);
+        document.getElementById('coin-count').textContent = user.coins;
+        document.getElementById('greeting').textContent = `Welcome back, ${user.username}`;
+
+        const { history } = await apiRequest('/rewards/history');
+        const list = document.getElementById('history-list');
+        const empty = document.getElementById('empty-history');
+        if (history.length === 0) {
+          empty.style.display = 'block';
+        } else {
+          list.innerHTML = history
+            .map(
+              (h) => `<li><span>${h.name}</span><span class="hist-cost mono">-${h.cost} tix</span></li>`
+            )
+            .join('');
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>

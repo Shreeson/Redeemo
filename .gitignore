@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Env / secrets
+.env
+
+# Database files (generated at runtime)
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# OS/editor cruft
+.DS_Store
+.vscode/
+*.log

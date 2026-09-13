@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Earn · Redeemo</title>
+  <meta name="description" content="Complete quests to earn tickets on Redeemo." />
+  <link rel="icon" href="images/favicon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <nav class="navbar" id="navbar" aria-label="Main navigation"></nav>
+
+  <main id="main" class="page">
+    <div class="page-header">
+      <p class="eyebrow">Quest Board</p>
+      <h1>Earn Tickets</h1>
+      <p>Each quest can be completed once per cooldown window. Cooldowns and rewards are checked on the server, so there's no way to farm tickets by refreshing.</p>
+    </div>
+
+    <div class="ticket-grid" id="quest-grid"></div>
+  </main>
+
+  <footer>Redeemo — a portfolio project. Not a real rewards program.</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    Auth.requireAuth();
+    renderNav('earn.html');
+
+    function formatCooldown(availableAt) {
+      const diffMs = new Date(availableAt) - new Date();
+      if (diffMs <= 0) return 'Available now';
+      const hours = Math.ceil(diffMs / (1000 * 60 * 60));
+      if (hours < 24) return `Ready in ${hours}h`;
+      return `Ready in ${Math.ceil(hours / 24)}d`;
+    }
+
+    function renderQuests(quests) {
+      const grid = document.getElementById('quest-grid');
+      grid.innerHTML = quests
+        .map(
+          (q) => `
+        <div class="ticket">
+          <div class="ticket-body">
+            <h3>${q.name}</h3>
+            <p>${q.description}</p>
+            ${!q.available ? `<span class="cooldown-note">${formatCooldown(q.availableAt)}</span>` : ''}
+          </div>
+          <div class="ticket-stub">
+            <span class="amount mono">+${q.reward}</span>
+            <span class="unit">tix</span>
+          </div>
+          <div class="ticket-action">
+            <button class="ticket-cta" data-quest-id="${q.id}" ${!q.available ? 'disabled' : ''}>
+              ${q.available ? 'Complete' : 'Locked'}
+            </button>
+          </div>
+        </div>
+      `
+        )
+        .join('');
+
+      grid.querySelectorAll('.ticket-cta').forEach((btn) => {
+        btn.addEventListener('click', () => completeQuest(btn.dataset.questId, btn));
+      });
+    }
+
+    async function completeQuest(id, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Completing…';
+      try {
+        const data = await apiRequest(`/quests/${id}/complete`, { method: 'POST' });
+        updateNavCoins(data.coins);
+        showToast(data.message);
+        loadQuests();
+      } catch (err) {
+        showToast(err.message, true);
+        btn.disabled = false;
+        btn.textContent = 'Complete';
+      }
+    }
+
+    async function loadQuests() {
+      try {
+        const { quests } = await apiRequest('/quests');
+        renderQuests(quests);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    loadQuests();
+  </script>
+</body>
+</html>

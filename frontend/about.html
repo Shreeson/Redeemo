@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About · Redeemo</title>
+  <meta name="description" content="What Redeemo is and how it works." />
+  <link rel="icon" href="images/favicon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <nav class="navbar" id="navbar" aria-label="Main navigation"></nav>
+
+  <main id="main" class="page">
+    <div class="page-header">
+      <p class="eyebrow">About</p>
+      <h1>How Redeemo Works</h1>
+      <p>The idea, the mechanics, and what's actually running under the hood.</p>
+    </div>
+
+    <section style="margin-bottom: 40px;">
+      <h2 style="font-size: 1.1rem;">The Idea</h2>
+      <div style="max-width: 65ch; display: flex; flex-direction: column; gap: 14px; color: var(--text-muted);">
+        <p>Redeemo simulates a gamified rewards program, the kind you'd see in a mobile app: complete small tasks ("quests") to earn tickets, then trade those tickets in for gift cards, in-game currency, streaming subscriptions, or charity donations.</p>
+        <p>It's built as a portfolio project, not a real rewards program — no quest here pays out actual money or products. The point is to demonstrate the full mechanics of a system like this, done properly.</p>
+      </div>
+    </section>
+
+    <section style="margin-bottom: 40px;">
+      <h2 style="font-size: 1.1rem;">What's Different From a Typical Demo</h2>
+      <div style="max-width: 65ch; display: flex; flex-direction: column; gap: 14px; color: var(--text-muted);">
+        <p>A lot of demo "rewards" apps keep the ticket balance in the browser's <code>localStorage</code>, which means anyone can open devtools and hand themselves unlimited tickets. Redeemo doesn't do that.</p>
+        <p>Every balance change happens on the server: completing a quest, checking whether its cooldown has passed, and deducting tickets on redemption are all verified against a real database, not trusted from the browser. The frontend only ever displays numbers it fetched from the API — it never invents or edits them locally.</p>
+      </div>
+    </section>
+
+    <section style="margin-bottom: 40px;">
+      <h2 style="font-size: 1.1rem;">How a Quest Actually Works</h2>
+      <div style="max-width: 65ch; display: flex; flex-direction: column; gap: 10px; color: var(--text-muted);">
+        <p>Each quest has a fixed reward and a cooldown window (some reset every few hours, some once a week, one — rating the app — only once ever). When you click "Complete":</p>
+      </div>
+      <ol style="max-width: 65ch; color: var(--text-muted); padding-left: 20px; display: flex; flex-direction: column; gap: 6px; margin-top: 12px;">
+        <li>The server looks up when you last completed that specific quest.</li>
+        <li>If the cooldown hasn't passed yet, it rejects the request (HTTP 429) and tells the frontend exactly when it'll be available again.</li>
+        <li>If it's allowed, your ticket balance is increased and the completion is logged with a timestamp — that log is what the next cooldown check reads.</li>
+      </ol>
+    </section>
+
+    <section style="margin-bottom: 40px;">
+      <h2 style="font-size: 1.1rem;">What's Under the Hood</h2>
+      <div style="max-width: 65ch; display: flex; flex-direction: column; gap: 14px; color: var(--text-muted);">
+        <p>Backend: Node.js + Express, with a SQLite database. Passwords are hashed with bcrypt before they're ever stored; sessions are handled with signed JWTs sent in the Authorization header on every request.</p>
+        <p>Frontend: plain HTML, CSS, and JavaScript — no framework or build step. Every page fetches its data from the API on load rather than hardcoding it, so quests and rewards can be added or changed on the server without touching the frontend at all.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.1rem;">FAQ</h2>
+      <div style="max-width: 65ch; display: flex; flex-direction: column; gap: 18px; color: var(--text-muted);">
+        <div>
+          <strong style="color: var(--text);">Is this a real rewards program?</strong>
+          <p style="margin: 4px 0 0;">No — it's a portfolio project. No quest pays out real money, gift cards, or donations.</p>
+        </div>
+        <div>
+          <strong style="color: var(--text);">Can I add my own quests or rewards?</strong>
+          <p style="margin: 4px 0 0;">Yes, if you're running this yourself — they're seeded in the backend's database file and can be edited or added to directly.</p>
+        </div>
+        <div>
+          <strong style="color: var(--text);">Why tickets instead of points or coins?</strong>
+          <p style="margin: 4px 0 0;">Mostly a design choice — it let the whole visual identity lean into a physical, tear-off ticket-stub look instead of a generic points dashboard.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Redeemo — a portfolio project. Not a real rewards program.</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    Auth.requireAuth();
+    renderNav('about.html');
+  </script>
+</body>
+</html>
