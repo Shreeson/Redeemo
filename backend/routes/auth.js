@@ -36,7 +36,7 @@ router.post('/signup', (req, res) => {
   const token = signToken(result.lastInsertRowid);
   res.status(201).json({
     token,
-    user: { id: result.lastInsertRowid, username, email, coins: 0 },
+    user: { id: result.lastInsertRowid, username, email, coins: 0, is_admin: false },
   });
 });
 
@@ -54,16 +54,22 @@ router.post('/login', (req, res) => {
   const token = signToken(user.id);
   res.json({
     token,
-    user: { id: user.id, username: user.username, email: user.email, coins: user.coins },
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      coins: user.coins,
+      is_admin: !!user.is_admin,
+    },
   });
 });
 
 router.get('/me', requireAuth, (req, res) => {
   const user = db
-    .prepare('SELECT id, username, email, coins FROM users WHERE id = ?')
+    .prepare('SELECT id, username, email, coins, is_admin FROM users WHERE id = ?')
     .get(req.userId);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({ user });
+  res.json({ user: { ...user, is_admin: !!user.is_admin } });
 });
 
 module.exports = router;

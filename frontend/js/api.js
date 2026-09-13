@@ -1,4 +1,5 @@
-const API_BASE = window.REDEEMO_API_BASE || 'http://localhost:5500/api';
+
+const API_BASE = window.REDEEMO_API_BASE || 'http://localhost:3001/api';
 
 const Auth = {
   getToken() {
@@ -26,10 +27,16 @@ const Auth = {
   isLoggedIn() {
     return !!Auth.getToken();
   },
-  // Call at the top of any page that requires login
   requireAuth() {
     if (!Auth.isLoggedIn()) {
       window.location.href = 'index.html';
+    }
+  },
+  requireAdmin() {
+    Auth.requireAuth();
+    const user = Auth.getUser();
+    if (!user || !user.is_admin) {
+      window.location.href = 'dashboard.html';
     }
   },
 };
@@ -92,6 +99,10 @@ function renderNav(activePage) {
     { href: 'about.html', label: 'About' },
     { href: 'feedback.html', label: 'Feedback' },
   ];
+
+  if (user && user.is_admin) {
+    links.push({ href: 'admin.html', label: 'Admin' });
+  }
 
   nav.innerHTML = `
     <a class="brand" href="dashboard.html"><span class="ticket-icon"></span>Redeemo</a>

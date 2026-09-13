@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin · Redeemo</title>
+  <meta name="description" content="Admin view of all submitted feedback." />
+  <link rel="icon" href="images/favicon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <nav class="navbar" id="navbar" aria-label="Main navigation"></nav>
+
+  <main id="main" class="page">
+    <div class="page-header">
+      <p class="eyebrow">Admin</p>
+      <h1>Feedback Inbox</h1>
+      <p>Every message submitted through the Feedback page, most recent first. Only visible to admin accounts.</p>
+    </div>
+
+    <div id="feedback-list"></div>
+    <div class="empty-state" id="empty-feedback" style="display:none;">
+      No feedback submitted yet.
+    </div>
+  </main>
+
+  <footer>Redeemo — a portfolio project. Not a real rewards program.</footer>
+
+  <script src="js/api.js"></script>
+  <script>
+    Auth.requireAdmin();
+    renderNav('admin.html');
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatDate(isoLike) {
+      // SQLite datetime('now') strings are UTC without a timezone marker
+      const date = new Date(isoLike.replace(' ', 'T') + 'Z');
+      return date.toLocaleString();
+    }
+
+    async function loadFeedback() {
+      try {
+        const { feedback } = await apiRequest('/feedback');
+        const list = document.getElementById('feedback-list');
+        const empty = document.getElementById('empty-feedback');
+
+        if (feedback.length === 0) {
+          empty.style.display = 'block';
+          return;
+        }
+
+        list.innerHTML = `
+          <div class="ticket-grid" style="grid-template-columns: 1fr;">
+            ${feedback
+              .map(
+                (f) => `
+              <div class="ticket" style="flex-direction: column;">
+                <div class="ticket-body">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
+                    <h3>${escapeHtml(f.username || 'Unknown user')}</h3>
+                    <span class="cooldown-note mono">${formatDate(f.created_at)}</span>
+                  </div>
+                  <p style="color: var(--text-muted); font-size: 0.8rem;">${escapeHtml(f.email || '')}</p>
+                  <p style="color: var(--text); margin-top: 8px;">${escapeHtml(f.message)}</p>
+                </div>
+              </div>
+            `
+              )
+              .join('')}
+          </div>
+        `;
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    loadFeedback();
+  </script>
+</body>
+</html>
