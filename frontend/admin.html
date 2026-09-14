@@ -15,14 +15,71 @@
   <main id="main" class="page">
     <div class="page-header">
       <p class="eyebrow">Admin</p>
-      <h1>Feedback Inbox</h1>
-      <p>Every message submitted through the Feedback page, most recent first. Only visible to admin accounts.</p>
+      <h1>Admin Dashboard</h1>
+      <p>Manage users, quests, rewards, and feedback. Only visible to admin accounts.</p>
     </div>
 
-    <div id="feedback-list"></div>
-    <div class="empty-state" id="empty-feedback" style="display:none;">
-      No feedback submitted yet.
-    </div>
+    <section style="margin-bottom: 48px;">
+      <h2 style="font-size: 1.1rem;">Users</h2>
+      <div class="counter-card" style="margin-bottom: 24px;">
+        <p class="eyebrow">Total Accounts</p>
+        <div class="count mono" id="user-count">—</div>
+        <div class="count-label">signed up</div>
+      </div>
+      <div id="users-list"></div>
+      <div class="empty-state" id="empty-users" style="display:none;">
+        No users yet.
+      </div>
+    </section>
+
+    <section style="margin-bottom: 48px;">
+      <h2 style="font-size: 1.1rem;">Quests</h2>
+      <form id="add-quest-form" class="admin-form">
+        <div class="admin-form-row">
+          <input type="text" id="quest-name" placeholder="Quest name" required />
+          <input type="text" id="quest-description" placeholder="Description" required />
+        </div>
+        <div class="admin-form-row">
+          <input type="number" id="quest-reward" placeholder="Reward (tix)" min="1" required />
+          <input type="number" id="quest-cooldown" placeholder="Cooldown (hours)" min="1" required />
+          <button type="submit" class="btn" style="width: auto; padding: 10px 20px;">Add Quest</button>
+        </div>
+      </form>
+      <div class="ticket-grid" id="quests-list"></div>
+      <div class="empty-state" id="empty-quests" style="display:none;">
+        No quests yet.
+      </div>
+    </section>
+
+    <section style="margin-bottom: 48px;">
+      <h2 style="font-size: 1.1rem;">Rewards</h2>
+      <form id="add-reward-form" class="admin-form">
+        <div class="admin-form-row">
+          <input type="text" id="reward-name" placeholder="Reward name" required />
+          <input type="number" id="reward-cost" placeholder="Cost (tix)" min="1" required />
+          <select id="reward-category" required>
+            <option value="gift-card">Gift Card</option>
+            <option value="game-currency">Game Currency</option>
+            <option value="subscription">Subscription</option>
+            <option value="charity">Charity</option>
+          </select>
+          <button type="submit" class="btn" style="width: auto; padding: 10px 20px;">Add Reward</button>
+        </div>
+      </form>
+      <div class="filter-tabs" id="admin-reward-tabs" role="tablist" aria-label="Filter rewards by category"></div>
+      <div class="ticket-grid" id="rewards-list"></div>
+      <div class="empty-state" id="empty-rewards" style="display:none;">
+        No rewards yet.
+      </div>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.1rem;">Feedback Inbox</h2>
+      <div id="feedback-list"></div>
+      <div class="empty-state" id="empty-feedback" style="display:none;">
+        No feedback submitted yet.
+      </div>
+    </section>
   </main>
 
   <footer>Redeemo — a portfolio project. Not a real rewards program.</footer>
@@ -31,6 +88,8 @@
   <script>
     Auth.requireAdmin();
     renderNav('admin.html');
+
+    const currentUser = Auth.getUser();
 
     function escapeHtml(str) {
       const div = document.createElement('div');
@@ -43,6 +102,8 @@
       const date = new Date(isoLike.replace(' ', 'T') + 'Z');
       return date.toLocaleString();
     }
+
+    // ---------- Feedback ----------
 
     async function loadFeedback() {
       try {
@@ -80,6 +141,383 @@
       }
     }
 
+    // ---------- Users ----------
+
+    async function loadUsers() {
+      try {
+        const { users, total } = await apiRequest('/admin/users');
+        document.getElementById('user-count').textContent = total;
+
+        const wrap = document.getElementById('users-list');
+        const empty = document.getElementById('empty-users');
+
+        if (users.length === 0) {
+          empty.style.display = 'block';
+          return;
+        }
+        empty.style.display = 'none';
+
+        wrap.innerHTML = `
+          <div class="ticket-grid" style="grid-template-columns: 1fr;">
+            ${users
+              .map(
+                (u) => `
+              <div class="ticket">
+                <div class="ticket-body">
+                  <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
+                    <h3>${escapeHtml(u.username)} ${u.is_admin ? '<span style="color: var(--gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em;">· Admin</span>' : ''}</h3>
+                    <span class="cooldown-note mono">Joined ${formatDate(u.created_at)}</span>
+                  </div>
+                  <p style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(u.email)}</p>
+                  <p class="mono" style="color: var(--gold); margin-top: 4px; font-weight: 700;">${u.coins} tix</p>
+                </div>
+                <div class="ticket-action">
+                  ${
+                    u.id === currentUser.id
+                      ? '<span class="cooldown-note">You</span>'
+                      : `<button class="ticket-cta" style="background: var(--red);" data-delete-user="${u.id}" data-username="${escapeHtml(u.username)}">Delete</button>`
+                  }
+                </div>
+              </div>
+            `
+              )
+              .join('')}
+          </div>
+        `;
+
+        wrap.querySelectorAll('[data-delete-user]').forEach((btn) => {
+          btn.addEventListener('click', () => deleteUser(btn.dataset.deleteUser, btn.dataset.username));
+        });
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function deleteUser(id, username) {
+      if (!confirm(`Delete user "${username}"? This also removes their quest history, redemptions, and feedback. This can't be undone.`)) {
+        return;
+      }
+      try {
+        const data = await apiRequest(`/admin/users/${id}`, { method: 'DELETE' });
+        showToast(data.message);
+        loadUsers();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // ---------- Quests ----------
+
+    let editingQuestId = null;
+
+    function questViewCard(q) {
+      return `
+        <div class="ticket">
+          <div class="ticket-body">
+            <h3>${escapeHtml(q.name)}</h3>
+            <p>${escapeHtml(q.description)}</p>
+            <span class="cooldown-note mono">Cooldown: ${q.cooldown_hours}h</span>
+          </div>
+          <div class="ticket-stub">
+            <span class="amount mono">+${q.reward}</span>
+            <span class="unit">tix</span>
+          </div>
+          <div class="ticket-action" style="flex-direction: column; gap: 6px;">
+            <button class="ticket-cta" data-edit-quest="${q.id}">Edit</button>
+            <button class="ticket-cta" style="background: var(--red);" data-delete-quest="${q.id}" data-name="${escapeHtml(q.name)}">Delete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function questEditCard(q) {
+      return `
+        <div class="ticket" style="flex-direction: column;">
+          <div class="ticket-body">
+            <div class="admin-form-row" style="margin-bottom: 8px;">
+              <input type="text" id="edit-quest-name-${q.id}" value="${escapeHtml(q.name)}" />
+              <input type="text" id="edit-quest-desc-${q.id}" value="${escapeHtml(q.description)}" />
+            </div>
+            <div class="admin-form-row">
+              <input type="number" id="edit-quest-reward-${q.id}" value="${q.reward}" min="1" />
+              <input type="number" id="edit-quest-cooldown-${q.id}" value="${q.cooldown_hours}" min="1" />
+              <button class="ticket-cta" data-save-quest="${q.id}">Save</button>
+              <button class="ticket-cta" style="background: var(--border); color: var(--text);" data-cancel-quest>Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadQuests() {
+      try {
+        const { quests } = await apiRequest('/admin/quests');
+        const grid = document.getElementById('quests-list');
+        const empty = document.getElementById('empty-quests');
+
+        if (quests.length === 0) {
+          empty.style.display = 'block';
+          grid.innerHTML = '';
+          return;
+        }
+        empty.style.display = 'none';
+
+        grid.innerHTML = quests
+          .map((q) => (q.id === editingQuestId ? questEditCard(q) : questViewCard(q)))
+          .join('');
+
+        grid.querySelectorAll('[data-edit-quest]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            editingQuestId = Number(btn.dataset.editQuest);
+            loadQuests();
+          });
+        });
+        grid.querySelectorAll('[data-cancel-quest]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            editingQuestId = null;
+            loadQuests();
+          });
+        });
+        grid.querySelectorAll('[data-save-quest]').forEach((btn) => {
+          btn.addEventListener('click', () => saveQuest(Number(btn.dataset.saveQuest)));
+        });
+        grid.querySelectorAll('[data-delete-quest]').forEach((btn) => {
+          btn.addEventListener('click', () => deleteQuest(btn.dataset.deleteQuest, btn.dataset.name));
+        });
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function saveQuest(id) {
+      try {
+        const name = document.getElementById(`edit-quest-name-${id}`).value.trim();
+        const description = document.getElementById(`edit-quest-desc-${id}`).value.trim();
+        const reward = Number(document.getElementById(`edit-quest-reward-${id}`).value);
+        const cooldown_hours = Number(document.getElementById(`edit-quest-cooldown-${id}`).value);
+
+        await apiRequest(`/admin/quests/${id}`, {
+          method: 'PUT',
+          body: { name, description, reward, cooldown_hours },
+        });
+        showToast('Quest updated');
+        editingQuestId = null;
+        loadQuests();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function deleteQuest(id, name) {
+      if (!confirm(`Delete quest "${name}"? This can't be undone.`)) return;
+      try {
+        const data = await apiRequest(`/admin/quests/${id}`, { method: 'DELETE' });
+        showToast(data.message);
+        loadQuests();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    document.getElementById('add-quest-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const name = document.getElementById('quest-name').value.trim();
+        const description = document.getElementById('quest-description').value.trim();
+        const reward = Number(document.getElementById('quest-reward').value);
+        const cooldown_hours = Number(document.getElementById('quest-cooldown').value);
+
+        await apiRequest('/admin/quests', {
+          method: 'POST',
+          body: { name, description, reward, cooldown_hours },
+        });
+        showToast('Quest added');
+        e.target.reset();
+        loadQuests();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+
+    // ---------- Rewards ----------
+
+    let editingRewardId = null;
+    let allRewardsAdmin = [];
+    let activeRewardCategory = 'all';
+
+    const categoryLabels = {
+      all: 'All',
+      'gift-card': 'Gift Cards',
+      'game-currency': 'Game Currency',
+      subscription: 'Subscriptions',
+      charity: 'Charity',
+    };
+
+    function rewardViewCard(r) {
+      return `
+        <div class="ticket">
+          <div class="ticket-body">
+            <h3>${escapeHtml(r.name)}</h3>
+            <p>${escapeHtml(r.category.replace('-', ' '))}</p>
+          </div>
+          <div class="ticket-stub">
+            <span class="amount cost mono">${r.cost}</span>
+            <span class="unit">tix</span>
+          </div>
+          <div class="ticket-action" style="flex-direction: column; gap: 6px;">
+            <button class="ticket-cta" data-edit-reward="${r.id}">Edit</button>
+            <button class="ticket-cta" style="background: var(--red);" data-delete-reward="${r.id}" data-name="${escapeHtml(r.name)}">Delete</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function rewardEditCard(r) {
+      const categories = ['gift-card', 'game-currency', 'subscription', 'charity'];
+      return `
+        <div class="ticket" style="flex-direction: column;">
+          <div class="ticket-body">
+            <div class="admin-form-row" style="margin-bottom: 8px;">
+              <input type="text" id="edit-reward-name-${r.id}" value="${escapeHtml(r.name)}" />
+              <input type="number" id="edit-reward-cost-${r.id}" value="${r.cost}" min="1" />
+            </div>
+            <div class="admin-form-row">
+              <select id="edit-reward-category-${r.id}">
+                ${categories
+                  .map((c) => `<option value="${c}" ${c === r.category ? 'selected' : ''}>${categoryLabels[c]}</option>`)
+                  .join('')}
+              </select>
+              <button class="ticket-cta" data-save-reward="${r.id}">Save</button>
+              <button class="ticket-cta" style="background: var(--border); color: var(--text);" data-cancel-reward>Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderRewardTabs() {
+      const present = ['all', ...new Set(allRewardsAdmin.map((r) => r.category))];
+      const tabs = document.getElementById('admin-reward-tabs');
+      tabs.innerHTML = present
+        .map(
+          (cat) => `
+        <button class="filter-tab ${cat === activeRewardCategory ? 'active' : ''}" data-category="${cat}">
+          ${categoryLabels[cat] || cat}
+        </button>
+      `
+        )
+        .join('');
+
+      tabs.querySelectorAll('.filter-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          activeRewardCategory = btn.dataset.category;
+          renderRewardTabs();
+          renderRewardsList();
+        });
+      });
+    }
+
+    function renderRewardsList() {
+      const grid = document.getElementById('rewards-list');
+      const empty = document.getElementById('empty-rewards');
+      const visible =
+        activeRewardCategory === 'all'
+          ? allRewardsAdmin
+          : allRewardsAdmin.filter((r) => r.category === activeRewardCategory);
+
+      if (allRewardsAdmin.length === 0) {
+        empty.style.display = 'block';
+        grid.innerHTML = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      grid.innerHTML = visible
+        .map((r) => (r.id === editingRewardId ? rewardEditCard(r) : rewardViewCard(r)))
+        .join('');
+
+      grid.querySelectorAll('[data-edit-reward]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          editingRewardId = Number(btn.dataset.editReward);
+          renderRewardsList();
+        });
+      });
+      grid.querySelectorAll('[data-cancel-reward]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          editingRewardId = null;
+          renderRewardsList();
+        });
+      });
+      grid.querySelectorAll('[data-save-reward]').forEach((btn) => {
+        btn.addEventListener('click', () => saveReward(Number(btn.dataset.saveReward)));
+      });
+      grid.querySelectorAll('[data-delete-reward]').forEach((btn) => {
+        btn.addEventListener('click', () => deleteReward(btn.dataset.deleteReward, btn.dataset.name));
+      });
+    }
+
+    async function loadRewardsAdmin() {
+      try {
+        const { rewards } = await apiRequest('/admin/rewards');
+        allRewardsAdmin = rewards;
+        renderRewardTabs();
+        renderRewardsList();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function saveReward(id) {
+      try {
+        const name = document.getElementById(`edit-reward-name-${id}`).value.trim();
+        const cost = Number(document.getElementById(`edit-reward-cost-${id}`).value);
+        const category = document.getElementById(`edit-reward-category-${id}`).value;
+
+        await apiRequest(`/admin/rewards/${id}`, {
+          method: 'PUT',
+          body: { name, cost, category, image: '' },
+        });
+        showToast('Reward updated');
+        editingRewardId = null;
+        loadRewardsAdmin();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function deleteReward(id, name) {
+      if (!confirm(`Delete reward "${name}"? This can't be undone.`)) return;
+      try {
+        const data = await apiRequest(`/admin/rewards/${id}`, { method: 'DELETE' });
+        showToast(data.message);
+        loadRewardsAdmin();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    document.getElementById('add-reward-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const name = document.getElementById('reward-name').value.trim();
+        const cost = Number(document.getElementById('reward-cost').value);
+        const category = document.getElementById('reward-category').value;
+
+        await apiRequest('/admin/rewards', {
+          method: 'POST',
+          body: { name, cost, category, image: '' },
+        });
+        showToast('Reward added');
+        e.target.reset();
+        loadRewardsAdmin();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+
+    loadUsers();
+    loadQuests();
+    loadRewardsAdmin();
     loadFeedback();
   </script>
 </body>

@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const questRoutes = require('./routes/quests');
 const rewardRoutes = require('./routes/rewards');
 const feedbackRoutes = require('./routes/feedback');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/rewards', rewardRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

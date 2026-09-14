@@ -40,7 +40,6 @@ h1, h2, h3, .display {
 
 a { color: var(--gold); }
 
-/* Skip link for keyboard users */
 .skip-link {
   position: absolute;
   left: -999px;
@@ -57,7 +56,6 @@ a { color: var(--gold); }
   outline-offset: 2px;
 }
 
-/* ---------- Nav ---------- */
 .navbar {
   display: flex;
   align-items: center;
@@ -130,7 +128,6 @@ a { color: var(--gold); }
 }
 .btn-logout:hover { border-color: var(--red); color: var(--red); }
 
-/* ---------- Layout ---------- */
 .page {
   max-width: 1000px;
   margin: 0 auto;
@@ -150,7 +147,6 @@ a { color: var(--gold); }
   margin: 0 0 8px;
 }
 
-/* ---------- Auth forms ---------- */
 .auth-wrap {
   min-height: 100vh;
   display: flex;
@@ -247,7 +243,37 @@ a { color: var(--gold); }
 }
 .form-success.visible { display: block; }
 
-/* ---------- Filter tabs ---------- */
+.admin-form {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-form-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.admin-form-row:last-child { margin-bottom: 0; }
+
+.admin-form-row input,
+.admin-form-row select {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+}
+.admin-form-row input:focus,
+.admin-form-row select:focus { border-color: var(--gold); }
+
 .filter-tabs {
   display: flex;
   gap: 10px;
@@ -270,7 +296,6 @@ a { color: var(--gold); }
 .filter-tab:hover { border-color: var(--gold); color: var(--gold); }
 .filter-tab.active { background: var(--gold); border-color: var(--gold); color: var(--bg); }
 
-/* ---------- Ticket stub cards (signature element) ---------- */
 .ticket-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -357,7 +382,6 @@ a { color: var(--gold); }
   color: var(--text-muted);
 }
 
-/* ---------- Dashboard ticket counter ---------- */
 .counter-card {
   background: var(--surface);
   border: 1px dashed var(--gold);
@@ -388,7 +412,6 @@ a { color: var(--gold); }
 }
 .quick-links a:hover { border-color: var(--gold); color: var(--gold); }
 
-/* ---------- Misc ---------- */
 .toast {
   position: fixed;
   bottom: 24px;
@@ -461,4 +484,4 @@ footer {
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
-} 
+}
