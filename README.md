@@ -59,7 +59,7 @@ npm install
 cp .env.example .env   # then edit JWT_SECRET to any long random string
 npm start
 ```
-The API runs on `http://localhost:5500`.
+The API runs on `http://localhost:3001`.
 
 **Frontend**
 
@@ -95,3 +95,7 @@ This is a portfolio project, not a production system:
 - SQLite is fine for a demo but isn't built for concurrent writes at scale — a real deployment would use Postgres.
 - No email verification or password reset flow.
 - No rate limiting on the API (would add `express-rate-limit` for a production version).
+- Clarify that the project is a portfolio example and not production-ready.
+## License
+
+MIT
