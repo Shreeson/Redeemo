@@ -4,8 +4,6 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// ---------- Users ----------
-
 router.get('/users', requireAuth, requireAdmin, (req, res) => {
   const users = db
     .prepare(
@@ -39,8 +37,6 @@ router.delete('/users/:id', requireAuth, requireAdmin, (req, res) => {
 
   res.json({ message: `Deleted user ${user.username} (${user.email})` });
 });
-
-// ---------- Quests ----------
 
 router.get('/quests', requireAuth, requireAdmin, (req, res) => {
   const quests = db.prepare('SELECT * FROM quests ORDER BY id').all();
@@ -104,8 +100,6 @@ router.delete('/quests/:id', requireAuth, requireAdmin, (req, res) => {
 
   res.json({ message: `Deleted quest: ${existing.name}` });
 });
-
-// ---------- Rewards ----------
 
 router.get('/rewards', requireAuth, requireAdmin, (req, res) => {
   const rewards = db.prepare('SELECT * FROM rewards ORDER BY id').all();

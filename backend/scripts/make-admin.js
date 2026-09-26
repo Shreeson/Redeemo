@@ -1,4 +1,3 @@
-// Usage: node scripts/make-admin.js someone@example.com
 const path = require('path');
 const Database = require('better-sqlite3');
 
